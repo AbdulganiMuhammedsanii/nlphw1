@@ -53,27 +53,26 @@ def handle_unknown_words(t, documents):
     # unique tokens
     total_unique_tokens = len(frequencies)
     # find threshold for tokens to replace
-    threshold = int(t * total_unique_tokens)
+    threshold = max(1, int(t * total_unique_tokens))
     # sort tokens by frequency then alphabetically
     sorted_tokens = sorted(frequencies, key=lambda token: (frequencies[token], token))
+    # identify tokens we need to replace
+    tokens_to_replace = set(sorted_tokens[:threshold])
+
     UNK_TOKEN = "<unk>"
-    vocab = set()
 
-    def replace_token(document):
-        for idx, token in enumerate(document):
-            if sorted_tokens.index(token) < threshold:
-                document[idx] = UNK_TOKEN
-                continue
-            if token not in vocab:
-                vocab.add(token)
-        return document
+    # Replace tokens in documents
+    new_documents = []
+    for document in documents:
+        new_doc = [
+            UNK_TOKEN if token in tokens_to_replace else token for token in document
+        ]
+        new_documents.append(new_doc)
 
-    new_documents = [replace_token(document) for document in documents]
-    vocab.add(UNK_TOKEN)
+    # Construct vocabulary (all remaining tokens + <unk>)
+    vocab = sorted(set(token for doc in new_documents for token in doc))
 
     return new_documents, vocab
-
-    # raise NotImplementedError()
 
 
 # Test Case 1: Basic Example
@@ -124,20 +123,21 @@ test_samples = [
     (t_5, documents_5),
 ]
 
-def test_func(test_cases): 
+def test_func(test_cases):
     def test_helper(t, documents):
         new_documents, vocab = handle_unknown_words(t, documents)
         for doc in new_documents:
             print(doc)
         print()
         print(vocab)
-    for t, doc in test_cases: 
+
+    for t, doc in test_cases:
         test_helper(t, doc)
         print()
         print()
 
 
-test_func(test_samples)
+# test_func(test_samples)
 
 def apply_smoothing(k, observation_counts, unique_obs):
     """
