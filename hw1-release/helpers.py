@@ -1,5 +1,5 @@
-# Name(s): Abdulgani Muhammedsani
-# Netid(s): amm546
+# Name(s): Abdulgani Muhammedsani, Edwin Dake
+# Netid(s): amm546, ed433
 ################################################################################
 # NOTE: Do NOT change any of the function headers and/or specs!
 # The input(s) and output must perfectly match the specs, or else your
