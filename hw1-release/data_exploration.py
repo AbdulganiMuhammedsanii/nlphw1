@@ -1,5 +1,5 @@
-# Name(s):
-# Netid(s):
+# Name(s): Edwin Dake, Abdulgani Muhammedsani
+# Netid(s): ed433, amm546
 
 ################### IMPORTS - DO NOT ADD, REMOVE, OR MODIFY ####################
 import json
