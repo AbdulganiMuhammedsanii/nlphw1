@@ -11,6 +11,7 @@ import numpy as np
 
 ## ================ Helper functions for loading data ==========================
 
+
 def unzip_file(zip_filepath, dest_path):
     """
     Returns boolean indication of whether the file was successfully unzipped.
@@ -95,15 +96,17 @@ def load_dataset(data_zip_path, dest_path):
     test_data = read_json(os.path.join(dest_path, "test.json"))
     return training_data, validation_data, test_data
 
+
 ## =============================================================================
 
 ################################################################################
 # NOTE: Do NOT change any of the function headers and/or specs!
-# The input(s) and output must perfectly match the specs, or else your 
+# The input(s) and output must perfectly match the specs, or else your
 # implementation for any function with changed specs will most likely fail!
 ################################################################################
 
 ## ================== Functions for students to implement ======================
+
 
 def stringify_labeled_doc(text, ner):
     """
@@ -124,7 +127,7 @@ def stringify_labeled_doc(text, ner):
       named entity. Note that tokens which are part of the same named entity
       should be separated by a single space. BIO prefix are stripped from the
       tags. O tags are ignored.
-      
+
 
       E.g.
       ["Gavin", "Fogel", "is", "cool", "."]
@@ -133,8 +136,125 @@ def stringify_labeled_doc(text, ner):
       returns "[PER Gavin Fogel] is cool."
     """
     # TODO: YOUR CODE HERE
+    res = []
+    current_entity = []
+    current_tag = None
 
-    raise NotImplementedError()
+    for txt, nr in zip(text, ner):
+        # Split BIO tags
+        if "-" in nr:
+            curr_section, curr_entity = nr.split("-")
+        else:
+            curr_section, curr_entity = None, None
+
+        # Handle entity
+        if curr_section == "B":  # Beginning of a new entity
+            if current_entity:  # If there's a previous entity, finish it
+                res.append(f"[{current_tag} {' '.join(current_entity)}]")
+                current_entity = []  # Reset the current entity
+
+            current_entity.append(txt)
+            current_tag = curr_entity
+        elif (
+            curr_section == "I" and curr_entity == current_tag
+        ):  # Continuation of the same entity
+            current_entity.append(txt)
+        else:
+            if current_entity:  # If an entity exists, finish it
+                res.append(f"[{current_tag} {' '.join(current_entity)}]")
+                current_entity = []
+            res.append(txt)
+
+    # If there is any leftover entity at the end, append it
+    if current_entity:
+        res.append(f"[{current_tag} {' '.join(current_entity)}]")
+
+    # Join and return the result as a string
+    return " ".join(res)
+
+    # result = []  # List to accumulate the formatted output
+    # current_entity = []  # Temporary list to accumulate tokens of the current entity
+    # current_tag = None  # Track the current entity tag (e.g., B-PER, I-PER)
+
+    # for token, tag in zip(text, ner):
+    #     # If the tag is "O", it is not part of a named entity
+    #     if tag == "O":
+    #         if current_entity:
+    #             # Append the current entity to the result
+    #             result.append(f"[{current_tag} {' '.join(current_entity)}]")
+    #             current_entity = []  # Reset the current entity
+    #         result.append(token)  # Add the non-entity token
+    #     else:
+    #         # Handle beginning of a new entity or continuation of the same entity
+    #         entity_type = tag.split("-")[
+    #             1
+    #         ]  # Extract entity type (e.g., PER, LOC, etc.)
+    #         if tag.startswith("B-"):  # New entity (Beginning)
+    #             if current_entity:
+    #                 # Append the previous entity to the result before starting a new one
+    #                 result.append(f"[{current_tag} {' '.join(current_entity)}]")
+    #                 current_entity = []  # Reset for the new entity
+    #             current_entity.append(
+    #                 token
+    #             )  # Start a new entity with the current token
+    #             current_tag = entity_type  # Set the current entity type
+    #         elif (
+    #             tag.startswith("I-") and current_tag == entity_type
+    #         ):  # Inside the same entity
+    #             current_entity.append(token)  # Continue the current entity
+    #         else:
+    #             # This case should not happen if the BIO format is followed correctly
+    #             pass
+
+    # # If there is any leftover entity at the end, append it
+    # if current_entity:
+    #     result.append(f"[{current_tag} {' '.join(current_entity)}]")
+
+    # # Join the result into a single string and return it
+    # return " ".join(result)
+
+
+text = ["Gavin", "Fogel", "is", "cool", "."]
+ner = ["B-PER", "I-PER", "O", "O", "O"]
+
+# Example usage:
+text2 = [
+    "ZIFA",
+    "said",
+    "Renate",
+    "Goetschl",
+    "of",
+    "Austria",
+    "won",
+    "the",
+    "women's",
+    "World",
+    "Cup",
+    "downhill",
+    "race",
+    "in",
+    "Germany",
+]
+ner2 = [
+    "B-ORG",
+    "O",
+    "B-PER",
+    "I-PER",
+    "O",
+    "B-LOC",
+    "O",
+    "O",
+    "O",
+    "B-MISC",
+    "I-MISC",
+    "O",
+    "O",
+    "B-LOC",
+]
+
+print(stringify_labeled_doc(text, ner))
+print(stringify_labeled_doc(text2, ner2))
+
 
 def validate_ner_sequence(ner):
     """
@@ -145,6 +265,6 @@ def validate_ner_sequence(ner):
     Output:
       result: Boolean, True if the named entity list is valid sequence, False otherwise
     """
-    #TODO: YOUR CODE HERE
+    # TODO: YOUR CODE HERE
 
     raise NotImplementedError()
