@@ -147,4 +147,26 @@ class HMM:
           result: Float
         """
         # YOUR CODE HERE
-        raise NotImplementedError()
+        # First word (i == 0)
+        if i == 0:
+            # Here, we leverage start state probability since this is our first state
+            transition_prob = self.start_state_probs[predicted_tag]
+        else:
+            # Not first state so we can leverage the actual ransition probability 
+            # from previous tag to predicted tag
+            transition_prob = self.transition_matrix[(previous_tag, predicted_tag)]
+
+        # Since we are in final state, we only need to return transition probability
+        if predicted_tag == "qf":
+            return transition_prob
+
+        # Get the current token, use <unk> if not in vocabulary
+        token = document[i]
+        if token not in self.vocab:
+            token = "<unk>"
+
+        # Get emission probability for current token given predicted tag
+        emission_prob = self.emission_matrix[(predicted_tag, token)]
+
+        # Return sum of log probabilities
+        return transition_prob + emission_prob
