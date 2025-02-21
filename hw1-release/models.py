@@ -62,36 +62,46 @@ class HMM:
         Returns a dictionary mapping (tag_{i-1}, tag_i) -> log probability,
         including transitions into 'qf' (final state), but not *from* 'qf'.
         """
-        all_tags_plus_qf = self.all_tags.append("qf")
 
-        transition = {}
 
-        for prev_tag in self.all_tags:
-            for next_tag in all_tags_plus_qf:
-                transition[(prev_tag, next_tag)] = 0
+        possible_prev_tags = [t for t in self.all_tags if t != "qf"]
+        possible_next_tags = list(self.all_tags)
+        if "qf" not in possible_next_tags:
+            possible_next_tags.append("qf")
 
-        for sentence_tags in self.labels:
-            for i in range(len(sentence_tags) - 1):
-                prevt = sentence_tags[i]
-                nextt = sentence_tags[i + 1]
-                transition[(prevt, nextt)] += 1
+        transition_counts = defaultdict(int)
+        for pt in possible_prev_tags:
+            for nt in possible_next_tags:
+                transition_counts[(pt, nt)] = 0
 
-            prev_tag = sentence_tags[-1]
-            transition[(prev_tag, "qf")] += 1
+        for tag_sequence in self.labels:
+            if not tag_sequence:
+                continue
+            for i in range(len(tag_sequence) - 1):
+                pt = tag_sequence[i]
+                nt = tag_sequence[i + 1]
+                if pt != "qf":
+                    transition_counts[(pt, nt)] += 1
+            last_tag = tag_sequence[-1]
+            if last_tag != "qf":
+                transition_counts[(last_tag, "qf")] += 1
 
-        smoothed_probs = self.smoothing_func(
+
+        transition_log_probs = self.smoothing_func(
             k=self.k_t,
-            counts=transition,
-            all_items=all_tags_plus_qf
+            observation_counts=transition_counts,
+            unique_obs=possible_next_tags  # smoothing is over possible "next tags"
         )
 
         transition_matrix = {}
-        for (prev_tag, next_tag), prob in smoothed_probs.items():
-            if prev_tag == "qf":
+        for (pt, nt), log_prob in transition_log_probs.items():
+            if pt == "qf":
+                # We do not allow transitions *from* 'qf'
                 continue
-            transition_matrix[(prev_tag, next_tag)] = np.log(prob)
+            transition_matrix[(pt, nt)] = log_prob
 
         return transition_matrix
+        
 
         
 
@@ -112,27 +122,36 @@ class HMM:
         emission_matrix: Dict<key Tuple[String, String] : value Float>
         Its size should be len(vocab) * len(all_tags).
       """
-      observation_counts = defaultdict(int)
-      valid_tags = [tag for tag in self.all_tags if tag != "qf"]
 
+      valid_tags = [t for t in self.all_tags if t != "qf"]
+
+      emission_counts = defaultdict(int)
       for tag in valid_tags:
           for token in self.vocab:
-              observation_counts[(tag, token)] = 0
-      for (tag, token), count in self.emission_counts.items():
-          if tag != "qf":
-              observation_counts[(tag, token)] = count
+              emission_counts[(tag, token)] = 0
 
-      log_probs = self.smoothing_func(
-          k=self.k_e, 
-          observation_counts=observation_counts, 
-          unique_obs=self.vocab
+      for sentence, tag_sequence in zip(self.documents, self.labels):
+          for token, tag in zip(sentence, tag_sequence):
+              if tag == "qf":
+                  continue
+              if token not in self.vocab:
+                  
+                  token = "<unk>"
+              emission_counts[(tag, token)] += 1
+
+      emission_log_probs = self.smoothing_func(
+          k=self.k_e,
+          observation_counts=emission_counts,
+          unique_obs=self.vocab  # smoothing over all tokens in vocab
       )
 
+      # 5) Build the final emission_matrix
       emission_matrix = {}
-      for (tag, token), log_val in log_probs.items():
-          emission_matrix[(tag, token)] = log_val
+      for (tag, token), log_prob in emission_log_probs.items():
+          emission_matrix[(tag, token)] = log_prob
 
       return emission_matrix
+      
 
     def get_start_state_probs(self):
         """
