@@ -1,5 +1,5 @@
-# Name(s):
-# Netid(s):
+# Name(s): Abdulgani Muhammedsani, Edwin Dake
+# Netid(s): amm546, ed433
 ################################################################################
 # NOTE: Do NOT change any of the function headers and/or specs!
 # The input(s) and output must perfectly match the specs, or else your 
@@ -59,8 +59,40 @@ class HMM:
     Output: 
       transition_matrix: Dict<key Tuple[String, String] : value Float>
     """
-    # YOUR CODE HERE
-    raise NotImplementedError()
+    """
+    Returns a dictionary mapping (tag_{i-1}, tag_i) -> log probability,
+    including transitions into 'qf' (final state), but not *from* 'qf'.
+    """
+    all_tags_plus_qf = self.all_tags.append("qf")
+
+    transition = {}
+
+    for prev_tag in self.all_tags:
+        for next_tag in all_tags_plus_qf:
+            transition[(prev_tag, next_tag)] = 0
+
+    for sentence_tags in self.labels:
+        for i in range(len(sentence_tags) - 1):
+            prevt = sentence_tags[i]
+            nextt = sentence_tags[i + 1]
+            transition[(prevt, nextt)] += 1
+
+        prev_tag = sentence_tags[-1]
+        transition[(prev_tag, "qf")] += 1
+
+    smoothed_probs = self.smoothing_func(
+        k=self.k_t,
+        counts=transition,
+        all_items=all_tags_plus_qf
+    )
+
+    transition_matrix = {}
+    for (prev_tag, next_tag), prob in smoothed_probs.items():
+        if prev_tag == "qf":
+            continue
+        transition_matrix[(prev_tag, next_tag)] = np.log(prob)
+
+    return transition_matrix
 
 
   def build_emission_matrix(self): 
@@ -80,8 +112,21 @@ class HMM:
       emission_matrix: Dict<key Tuple[String, String] : value Float>
       Its size should be len(vocab) * len(all_tags).
     """
-    # YOUR CODE HERE
-    raise NotImplementedError()
+    emission_matrix = {}
+    valid_tags = [tag for tag in self.all_tags if tag != "qf"]
+
+    smoothing = sum(self.smoothing_func(token) for token in self.vocab)
+
+    for tag in valid_tags:
+       tag_total = self.tag_counts.get(tag, 0)
+       denom = tag_total + self.k_e * smoothing
+       for token in self.vocab:
+           count = self.emission_counts.get((tag, token), 0)
+           num = count + self.k_e * self.smoothing_func(token)
+           prob = num / denom
+           emission_matrix[(tag, token)] = np.log(prob)
+    return emission_matrix
+
 
 
   def get_start_state_probs(self):
