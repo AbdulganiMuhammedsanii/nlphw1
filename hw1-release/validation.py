@@ -130,7 +130,6 @@ def evaluate_model(model, val_set, tags):
         all_real_labels.extend(true_labels)
         all_indices.extend(indices)
 
-    # Format predictions and true labels into required dictionary format
     predicted_dict = format_output_labels(all_predictions, all_indices)
     true_dict = format_output_labels(all_real_labels, all_indices)
 
