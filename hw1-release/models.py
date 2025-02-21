@@ -144,7 +144,6 @@ class HMM:
         Output:
           start_state_probs: Dict<key String : value Float>
         """
-        # YOUR CODE HERE
         start_state_counts = defaultdict(int)
 
         # Count initial tags
@@ -189,7 +188,6 @@ class HMM:
         Output:
           result: Float
         """
-        # YOUR CODE HERE
         # First word (i == 0)
         if i == 0:
             # Here, we leverage start state probability since this is our first state
