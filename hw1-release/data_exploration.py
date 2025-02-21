@@ -222,8 +222,8 @@ ner2 = [
     "B-LOC",
 ]
 
-print(stringify_labeled_doc(text, ner))
-print(stringify_labeled_doc(text2, ner2))
+# print(stringify_labeled_doc(text, ner))
+# print(stringify_labeled_doc(text2, ner2))
 
 
 def validate_ner_sequence(ner):
@@ -289,6 +289,6 @@ ner4 = [
 
 ner5 = ["B-PER", "I-LOC", "O", "O", "O"]
 
-print(True, validate_ner_sequence(ner3))
-print(False, validate_ner_sequence(ner4))
-print(False, validate_ner_sequence(ner5))
+# print(True, validate_ner_sequence(ner3))
+# print(False, validate_ner_sequence(ner4))
+# print(False, validate_ner_sequence(ner5))
