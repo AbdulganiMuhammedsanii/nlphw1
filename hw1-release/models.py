@@ -55,14 +55,13 @@ class HMM:
         but also 'qf' our end token. Use the `smoothing_func` and `k_t` fields to
         perform smoothing.
 
-        Output: 
+        Output:
           transition_matrix: Dict<key Tuple[String, String] : value Float>
         """
         """
         Returns a dictionary mapping (tag_{i-1}, tag_i) -> log probability,
         including transitions into 'qf' (final state), but not *from* 'qf'.
         """
-
 
         possible_prev_tags = [t for t in self.all_tags if t != "qf"]
         possible_next_tags = list(self.all_tags)
@@ -86,11 +85,10 @@ class HMM:
             if last_tag != "qf":
                 transition_counts[(last_tag, "qf")] += 1
 
-
         transition_log_probs = self.smoothing_func(
             k=self.k_t,
             observation_counts=transition_counts,
-            unique_obs=possible_next_tags  # smoothing is over possible "next tags"
+            unique_obs=possible_next_tags,  # smoothing is over possible "next tags"
         )
 
         transition_matrix = {}
@@ -101,57 +99,53 @@ class HMM:
             transition_matrix[(pt, nt)] = log_prob
 
         return transition_matrix
-        
 
-        
+    def build_emission_matrix(self):
+        """
+        Returns the emission probabilities as a dictionary, mapping all possible
+        (tag, token) tuple pairs to their corresponding smoothed log probabilities:
+        log[P(token | tag)].
 
-    def build_emission_matrix(self): 
-      """
-      Returns the emission probabilities as a dictionary, mapping all possible 
-      (tag, token) tuple pairs to their corresponding smoothed log probabilities: 
-      log[P(token | tag)]. 
-      
-      Note: Consider all possible tokens from the list `vocab` and all tags from 
-      the list `all_tags`. Use the `smoothing_func` and `k_e` fields to perform smoothing.
+        Note: Consider all possible tokens from the list `vocab` and all tags from
+        the list `all_tags`. Use the `smoothing_func` and `k_e` fields to perform smoothing.
 
-      Note: The final state "qf" is final, as such, there should be no emissions from 'qf' 
-      to any token in your matrix (this includes a special end token!). This means the tag 
-      'qf' should not have any emissions, and thus not appear in your emission matrix.
-    
-      Output:
-        emission_matrix: Dict<key Tuple[String, String] : value Float>
-        Its size should be len(vocab) * len(all_tags).
-      """
+        Note: The final state "qf" is final, as such, there should be no emissions from 'qf'
+        to any token in your matrix (this includes a special end token!). This means the tag
+        'qf' should not have any emissions, and thus not appear in your emission matrix.
 
-      valid_tags = [t for t in self.all_tags if t != "qf"]
+        Output:
+          emission_matrix: Dict<key Tuple[String, String] : value Float>
+          Its size should be len(vocab) * len(all_tags).
+        """
 
-      emission_counts = defaultdict(int)
-      for tag in valid_tags:
-          for token in self.vocab:
-              emission_counts[(tag, token)] = 0
+        valid_tags = [t for t in self.all_tags if t != "qf"]
 
-      for sentence, tag_sequence in zip(self.documents, self.labels):
-          for token, tag in zip(sentence, tag_sequence):
-              if tag == "qf":
-                  continue
-              if token not in self.vocab:
-                  
-                  token = "<unk>"
-              emission_counts[(tag, token)] += 1
+        emission_counts = defaultdict(int)
+        for tag in valid_tags:
+            for token in self.vocab:
+                emission_counts[(tag, token)] = 0
 
-      emission_log_probs = self.smoothing_func(
-          k=self.k_e,
-          observation_counts=emission_counts,
-          unique_obs=self.vocab  # smoothing over all tokens in vocab
-      )
+        for sentence, tag_sequence in zip(self.documents, self.labels):
+            for token, tag in zip(sentence, tag_sequence):
+                if tag == "qf":
+                    continue
+                if token not in self.vocab:
 
-      # 5) Build the final emission_matrix
-      emission_matrix = {}
-      for (tag, token), log_prob in emission_log_probs.items():
-          emission_matrix[(tag, token)] = log_prob
+                    token = "<unk>"
+                emission_counts[(tag, token)] += 1
 
-      return emission_matrix
-      
+        emission_log_probs = self.smoothing_func(
+            k=self.k_e,
+            observation_counts=emission_counts,
+            unique_obs=self.vocab,  # smoothing over all tokens in vocab
+        )
+
+        # 5) Build the final emission_matrix
+        emission_matrix = {}
+        for (tag, token), log_prob in emission_log_probs.items():
+            emission_matrix[(tag, token)] = log_prob
+
+        return emission_matrix
 
     def get_start_state_probs(self):
         """
@@ -217,10 +211,14 @@ class HMM:
         # First word (i == 0)
         if i == 0:
             # Here, we leverage start state probability since this is our first state
+            if predicted_tag not in self.start_state_probs:
+                return float("-inf")
             transition_prob = self.start_state_probs[predicted_tag]
         else:
-            # Not first state so we can leverage the actual ransition probability 
+            # Not first state so we can leverage the actual ransition probability
             # from previous tag to predicted tag
+            if (previous_tag, predicted_tag) not in self.transition_matrix:
+                return float("-inf")
             transition_prob = self.transition_matrix[(previous_tag, predicted_tag)]
 
         # Since we are in final state, we only need to return transition probability
@@ -233,6 +231,8 @@ class HMM:
             token = "<unk>"
 
         # Get emission probability for current token given predicted tag
+        if (predicted_tag, token) not in self.emission_matrix:
+            return float("-inf")
         emission_prob = self.emission_matrix[(predicted_tag, token)]
 
         # Return sum of log probabilities
