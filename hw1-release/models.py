@@ -112,19 +112,26 @@ class HMM:
         emission_matrix: Dict<key Tuple[String, String] : value Float>
         Its size should be len(vocab) * len(all_tags).
       """
-      emission_matrix = {}
+      observation_counts = defaultdict(int)
       valid_tags = [tag for tag in self.all_tags if tag != "qf"]
 
-      smoothing = sum(self.smoothing_func(token) for token in self.vocab)
-
       for tag in valid_tags:
-        tag_total = self.tag_counts.get(tag, 0)
-        denom = tag_total + self.k_e * smoothing
-        for token in self.vocab:
-            count = self.emission_counts.get((tag, token), 0)
-            num = count + self.k_e * self.smoothing_func(token)
-            prob = num / denom
-            emission_matrix[(tag, token)] = np.log(prob)
+          for token in self.vocab:
+              observation_counts[(tag, token)] = 0
+      for (tag, token), count in self.emission_counts.items():
+          if tag != "qf":
+              observation_counts[(tag, token)] = count
+
+      log_probs = self.smoothing_func(
+          k=self.k_e, 
+          observation_counts=observation_counts, 
+          unique_obs=self.vocab
+      )
+
+      emission_matrix = {}
+      for (tag, token), log_val in log_probs.items():
+          emission_matrix[(tag, token)] = log_val
+
       return emission_matrix
 
     def get_start_state_probs(self):
