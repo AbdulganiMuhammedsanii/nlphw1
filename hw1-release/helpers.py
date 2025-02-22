@@ -8,7 +8,6 @@
 
 ################### IMPORTS - DO NOT ADD, REMOVE, OR MODIFY ####################
 import numpy as np
-import math
 from collections import Counter, defaultdict
 
 
@@ -175,6 +174,7 @@ def apply_smoothing(k, observation_counts, unique_obs):
     #the log smoothed format
     log_prob = {}
     states = set( state for (state, _) in observation_counts.keys() )
+    print(observation_counts)
 
     for state in states:
         denom = sum(k + observation_counts[(state, obs)] for obs in unique_obs)
@@ -183,6 +183,5 @@ def apply_smoothing(k, observation_counts, unique_obs):
         for obs in unique_obs:
             num = observation_counts[(state, obs)] + k
             
-            log_prob[(state, obs)] = math.log(num) - math.log(denom)
-
+            log_prob[(state, obs)] = np.log(num) - np.log(denom)
     return log_prob

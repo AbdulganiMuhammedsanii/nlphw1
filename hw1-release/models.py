@@ -119,21 +119,37 @@ class HMM:
         """
 
         valid_tags = [t for t in self.all_tags if t != "qf"]
+        c  = 0
+        new = []
+        tgnew = []
+        for i in self.documents:
+            for j in i:
+                if type(j) == list:
+                    for elem in j:
+                        new.append(elem)
+                else:
+                    new.append(j)
+        for i in self.labels:
+            for j in i:
+                if type(j) == list:
+                    for elem in j:
+                        tgnew.append(elem)
+                else:
+                    tgnew.append(j)
+        
 
+        print("sanity check", len(new), len(tgnew))
         emission_counts = defaultdict(int)
         for tag in valid_tags:
             for token in self.vocab:
                 emission_counts[(tag, token)] = 0
-
-        for sentence, tag_sequence in zip(self.documents, self.labels):
-            for token, tag in zip(sentence, tag_sequence):
+        for token, tag in zip(new, tgnew):
                 if tag == "qf":
                     continue
                 if token not in self.vocab:
-
                     token = "<unk>"
                 emission_counts[(tag, token)] += 1
-
+        print("emissioncount", emission_counts)
         emission_log_probs = self.smoothing_func(
             k=self.k_e,
             observation_counts=emission_counts,
