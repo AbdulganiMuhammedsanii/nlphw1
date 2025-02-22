@@ -175,8 +175,9 @@ def apply_smoothing(k, observation_counts, unique_obs):
     #the log smoothed format
     log_prob = {}
     states = set( state for (state, _) in observation_counts.keys() )
+
     for state in states:
-        denom = sum(k + observation_counts[(state, obs)]for obs in unique_obs)
+        denom = sum(k + observation_counts[(state, obs)] for obs in unique_obs)
 
         #diff of logs = prob / prob
         for obs in unique_obs:

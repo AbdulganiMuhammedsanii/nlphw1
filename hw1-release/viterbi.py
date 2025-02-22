@@ -9,8 +9,9 @@
 ################### IMPORTS - DO NOT ADD, REMOVE, OR MODIFY ####################
 import numpy as np
 
+
 def viterbi(model, observation, tags):
-  """
+    """
   Returns the model's predicted tag sequence for a particular observation.
   Use `get_tag_likelihood` method to obtain model scores at each iteration.
 
@@ -21,55 +22,60 @@ def viterbi(model, observation, tags):
   Output:
     predictions: List[String]
   """
-  num_states = len(observation) + 1  # +1 for final qf state
-  viterbi_probs = {} 
-  backpointers = {}  
-  
-  # Initialize first position (i=0)
-  for tag in tags:  # qf can't be start state
-      viterbi_probs[0][tag] = model.get_tag_likelihood(tag, None, observation, 0)
-  
-  # Fill DP matrices
-  for i in range(1, num_states):
-      # For last position, only consider transitions to 'qf'
-      current_tags = ['qf'] if i == len(observation) else tags
-      
-      for curr_tag in current_tags:
-          max_prob = float('-inf')
-          best_prev_tag = None
-          
-          # Check all possible previous tags
-          prev_tags = tags if i < len(observation) else tags 
-          for prev_tag in prev_tags:
-              # Here, we compute the probability through this path
-              if prev_tag in viterbi_probs[i-1]:
-                  path_prob = viterbi_probs[i-1][prev_tag] + \
-                            model.get_tag_likelihood(curr_tag, prev_tag, observation, i if i < len(observation) else None)
-                  
-                  # We are interested in max probs so update if better path found
-                  if path_prob > max_prob:
-                      max_prob = path_prob
-                      best_prev_tag = prev_tag
-          
-          if best_prev_tag is not None:
-              viterbi_probs[i][curr_tag] = max_prob
-              backpointers[i][curr_tag] = best_prev_tag
-  
-  # Backtrack to get best sequence
-  if not backpointers:
-      return []
-      
-  # Start from final state
-  tags_sequence = []
-  curr_pos = len(observation)
-  curr_tag = 'qf'
-  
-  # Build sequence from end to start
-  while curr_pos > 0:
-      prev_tag = backpointers[curr_pos][curr_tag]
-      tags_sequence.append(prev_tag)
-      curr_tag = prev_tag
-      curr_pos -= 1
-  
-  # Reverse since we built backwards
-  return tags_sequence[::-1]
+    real_tags = [t for t in tags if t != "qf"]
+    N = len(observation)        # Number of tokens
+    K = len(real_tags)          # Number of actual (non-"qf") tags
+   
+    dp = np.full((N, K), -np.inf)
+    backpointer = np.zeros((N, K), dtype=int)
+
+   
+    for j, tag_j in enumerate(real_tags):
+        dp[0, j] = model.get_tag_likelihood(
+            predicted_tag=tag_j,
+            previous_tag="qf",    # or any dummy, because i=0 uses start_state_probs
+            document=observation,
+            i=0
+        )
+        backpointer[0, j] = 0  # no predecessor at time 0
+
+    for i in range(1, N):
+        for j, tag_j in enumerate(real_tags):
+            best_score = -np.inf
+            best_prev_index = 0
+            for k, tag_k in enumerate(real_tags):
+                score = (dp[i-1, k]
+                         + model.get_tag_likelihood(
+                               predicted_tag=tag_j,
+                               previous_tag=tag_k,
+                               document=observation,
+                               i=i
+                           ))
+                if score > best_score:
+                    best_score = score
+                    best_prev_index = k
+            dp[i, j] = best_score
+            backpointer[i, j] = best_prev_index
+
+    best_final_score = -np.inf
+    best_final_index = 0
+    for k, tag_k in enumerate(real_tags):
+        score_to_qf = (dp[N-1, k]
+                       + model.get_tag_likelihood(
+                             predicted_tag="qf",
+                             previous_tag=tag_k,
+                             document=observation,
+                             i=N   # pass i=N so no emission is used, only transition
+                         ))
+        if score_to_qf > best_final_score:
+            best_final_score = score_to_qf
+            best_final_index = k
+
+    best_path = [best_final_index]  # which real_tags[] index is best at i = N-1
+    for i in range(N-1, 0, -1):
+        best_path.append(backpointer[i, best_path[-1]])
+    best_path.reverse()
+
+    predictions = [real_tags[i] for i in best_path]
+
+    return predictions

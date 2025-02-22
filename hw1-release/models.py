@@ -123,6 +123,9 @@ class HMM:
         Its size should be len(vocab) * len(all_tags).
       """
 
+      if "<unk>" not in self.vocab:
+        self.vocab.append("<unk>")
+
       valid_tags = [t for t in self.all_tags if t != "qf"]
 
       emission_counts = defaultdict(int)
@@ -135,17 +138,15 @@ class HMM:
               if tag == "qf":
                   continue
               if token not in self.vocab:
-                  
                   token = "<unk>"
               emission_counts[(tag, token)] += 1
 
       emission_log_probs = self.smoothing_func(
           k=self.k_e,
           observation_counts=emission_counts,
-          unique_obs=self.vocab  # smoothing over all tokens in vocab
+          unique_obs=self.vocab
       )
 
-      # 5) Build the final emission_matrix
       emission_matrix = {}
       for (tag, token), log_prob in emission_log_probs.items():
           emission_matrix[(tag, token)] = log_prob
@@ -180,7 +181,6 @@ class HMM:
 
         start_state_probs = {}
         total_sequences = len(self.labels)
-
         # Apply k_s smoothing
         for tag in self.all_tags:
             if tag != "qf":  # "qf" cannot be a start tag
