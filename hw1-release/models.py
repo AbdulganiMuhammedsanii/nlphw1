@@ -88,7 +88,7 @@ class HMM:
         transition_log_probs = self.smoothing_func(
             k=self.k_t,
             observation_counts=transition_counts,
-            unique_obs=possible_next_tags,  # smoothing is over possible "next tags"
+            unique_obs=possible_next_tags, 
         )
 
         transition_matrix = {}
@@ -154,10 +154,9 @@ class HMM:
         emission_log_probs = self.smoothing_func(
             k=self.k_e,
             observation_counts=emission_counts,
-            unique_obs=self.vocab,  # smoothing over all tokens in vocab
+            unique_obs=self.vocab,  
         )
 
-        # 5) Build the final emission_matrix
         emission_matrix = {}
         for (tag, token), log_prob in emission_log_probs.items():
             emission_matrix[(tag, token)] = log_prob
@@ -183,17 +182,16 @@ class HMM:
         """
         start_state_counts = defaultdict(int)
 
-        # Count initial tags
         for sequence in self.labels:
             if sequence:
-                # extract the start tag and increment count
+                # get the start tag and increment count
                 start_state_counts[sequence[0]] += 1
 
         start_state_probs = {}
         total_sequences = len(self.labels)
         # Apply k_s smoothing
         for tag in self.all_tags:
-            if tag != "qf":  # "qf" cannot be a start tag
+            if tag != "qf":
                 smoothed_count = start_state_counts[tag] + self.k_s
                 total_smoothed = total_sequences + self.k_s * (len(self.all_tags) - 1)
                 start_state_probs[tag] = np.log(smoothed_count / total_smoothed)
@@ -224,32 +222,25 @@ class HMM:
         Output:
           result: Float
         """
-        # First word (i == 0)
         if i == 0:
-            # Here, we leverage start state probability since this is our first state
             if predicted_tag not in self.start_state_probs:
                 return float("-inf")
             transition_prob = self.start_state_probs[predicted_tag]
         else:
-            # Not first state so we can leverage the actual ransition probability
-            # from previous tag to predicted tag
+            # Not first state so we can use the actual transition probability
             if (previous_tag, predicted_tag) not in self.transition_matrix:
                 return float("-inf")
             transition_prob = self.transition_matrix[(previous_tag, predicted_tag)]
 
-        # Since we are in final state, we only need to return transition probability
         if predicted_tag == "qf":
             return transition_prob
 
-        # Get the current token, use <unk> if not in vocabulary
         token = document[i]
         if token not in self.vocab:
             token = "<unk>"
 
-        # Get emission probability for current token given predicted tag
         if (predicted_tag, token) not in self.emission_matrix:
             return float("-inf")
         emission_prob = self.emission_matrix[(predicted_tag, token)]
 
-        # Return sum of log probabilities
         return transition_prob + emission_prob

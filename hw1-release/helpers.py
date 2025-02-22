@@ -167,11 +167,11 @@ def apply_smoothing(k, observation_counts, unique_obs):
 
     Note that the function will be applied to both transition_matrix and emission_matrix.
     """
-    # YOUR CODE HERE 
     #first calculate the denominator for the add k smoothing
     # which is the sum of the state observation pair
     # the prob of the state observation over sum of the probs and using 
     #the log smoothed format
+    
     log_prob = {}
     states = set( state for (state, _) in observation_counts.keys() )
 

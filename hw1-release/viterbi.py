@@ -23,8 +23,8 @@ def viterbi(model, observation, tags):
     predictions: List[String]
   """
     real_tags = [t for t in tags if t != "qf"]
-    N = len(observation)        # Number of tokens
-    K = len(real_tags)          # Number of actual (non-"qf") tags
+    N = len(observation)      
+    K = len(real_tags)      
    
     dp = np.full((N, K), -np.inf)
     backpointer = np.zeros((N, K), dtype=int)
@@ -33,7 +33,7 @@ def viterbi(model, observation, tags):
     for j, tag_j in enumerate(real_tags):
         dp[0, j] = model.get_tag_likelihood(
             predicted_tag=tag_j,
-            previous_tag="qf",    # or any dummy, because i=0 uses start_state_probs
+            previous_tag="qf",   
             document=observation,
             i=0
         )
@@ -57,7 +57,7 @@ def viterbi(model, observation, tags):
             dp[i, j] = best_score
             backpointer[i, j] = best_prev_index
 
-    best_final_score = -np.inf
+    best_final = -np.inf
     best_final_index = 0
     for k, tag_k in enumerate(real_tags):
         score_to_qf = (dp[N-1, k]
@@ -65,13 +65,13 @@ def viterbi(model, observation, tags):
                              predicted_tag="qf",
                              previous_tag=tag_k,
                              document=observation,
-                             i=N   # pass i=N so no emission is used, only transition
+                             i=N   
                          ))
-        if score_to_qf > best_final_score:
-            best_final_score = score_to_qf
+        if score_to_qf > best_final:
+            best_final = score_to_qf
             best_final_index = k
 
-    best_path = [best_final_index]  # which real_tags[] index is best at i = N-1
+    best_path = [best_final_index] 
     for i in range(N-1, 0, -1):
         best_path.append(backpointer[i, best_path[-1]])
     best_path.reverse()
