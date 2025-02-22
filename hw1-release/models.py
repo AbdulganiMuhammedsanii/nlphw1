@@ -133,12 +133,14 @@ class HMM:
             for j in i:
                 if type(j) == list:
                     for elem in j:
-                        tgnew.append(elem)
+                        if type(elem) == list:
+                            for l in elem:
+                                tgnew.append(l)
+                        else:
+                            tgnew.append(elem)
                 else:
                     tgnew.append(j)
         
-
-        print("sanity check", len(new), len(tgnew))
         emission_counts = defaultdict(int)
         for tag in valid_tags:
             for token in self.vocab:
@@ -149,7 +151,6 @@ class HMM:
                 if token not in self.vocab:
                     token = "<unk>"
                 emission_counts[(tag, token)] += 1
-        print("emissioncount", emission_counts)
         emission_log_probs = self.smoothing_func(
             k=self.k_e,
             observation_counts=emission_counts,
